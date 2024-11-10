@@ -2,16 +2,14 @@
  * File:   main.c
  * Author: markus-klund
  *
- * Created on November 9, 2024, 8:38 AM
+ * Created on November 10, 2024, 8:56 AM
  */
 
 
 #include <xc.h>
 #include "usart.h"
-#include <util/delay.h>
 #include <stdbool.h>
-
-
+#include <util/delay.h>
 
 void AC_init(){
     // Set pin PD2 (port D, pin 2) as an input
@@ -19,7 +17,14 @@ void AC_init(){
     // Disable digital input buffer and pull-up resistor for pin PD2
     PORTD.PIN2CTRL = PORT_ISC_INPUT_DISABLE_gc;
     // Remaining initialization steps...
-    AC0.DACREF = <calculated_DACREF>
+    
+    // Set the positive input (PD2) and the negative input (DACREF) in MUXCTRL
+    AC0.MUXCTRL = AC_MUXNEG_DACREF_gc | AC_MUXPOS_AINP0_gc;
+    //AC0.DACREF = (0.1 * 256) / 1.024;
+    AC0.DACREF = 25;
+    
+    // Enable Analog Comparator and optional hysteresis
+    AC0.CTRLA = AC_ENABLE_bm | AC_HYSMODE_SMALL_gc;
 }
 
 void VREF_init(void) {
@@ -31,12 +36,11 @@ void LED_init() {
 }
 
 void set_LED_on(){
-    // LED is active low. Set pin LOW to turn LED on
-    PORTA.OUTCLR = PIN2_bm;
+    PORTA.OUTCLR = PIN2_bm; // Set pin LOW to turn LED on
 }
+
 void set_LED_off(){
-    // LED is active low. Set pin HIGH to turn LED off
-    PORTA.OUTSET = PIN2_bm;
+    PORTA.OUTSET = PIN2_bm; // Set pin HIGH to turn LED off
 }
 
 bool AC_above_threshold() {
@@ -48,21 +52,35 @@ bool AC_above_threshold() {
     }
 }
 
-int main() {
+void main(void) {
+    USART3_Init();
     AC_init();
     VREF_init();
-    USART3_Init(); // remove
     LED_init();
-    USART3_SendChar('A'); // remove
     
-    while (1) {
-        // Implement the busy-waiting scheme
-        if (AC_above_threshold()) {
+    USART3_SendChar('A');
+    
+    for (int i = 0; i < 5; i++) {
+        if (i%2 == 0) {
             set_LED_on();
+            USART3_SendChar('A');
         } else {
             set_LED_off();
+            USART3_SendChar('B');
         }
+        _delay_ms(1000);
     }
     
-    return 0;
+    while (1) {
+        if (AC_above_threshold()) {
+            set_LED_off(); // Turn LED off when it's bright
+            USART3_SendChar('Y');
+        } else {
+            set_LED_on();  // Turn LED on when it's dark
+            USART3_SendChar('N');
+        }
+        _delay_ms(1000);
+    }
+    
+    return;
 }

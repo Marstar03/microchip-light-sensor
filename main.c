@@ -77,12 +77,36 @@ ISR(TCA0_OVF_vect)
     TCA0.SINGLE.INTFLAGS = TCA_SINGLE_OVF_bm;
 }
 
+void configure_unused_pins(void) {
+    // Configure the setting for unused pins: disable digital input buffer, enable internal pull-up
+    PORTA.PINCONFIG = PORT_ISC_INPUT_DISABLE_gc | PORT_PULLUPEN_bm;
+
+    // Apply this configuration to all pins on each port except for the ones in use
+    // PORTA - Apply to all except PA2 (used for LED)
+    PORTA.PINCTRLUPD = 0xFD; // 0b11111101, excludes PA2
+
+    // PORTB - Apply to all pins (assuming none are in use)
+    PORTB.PINCTRLUPD = 0xFF; // All pins
+
+    // PORTC - Apply to all pins (assuming none are in use)
+    PORTC.PINCTRLUPD = 0xFF; // All pins
+
+    // PORTD - Apply to all except PD2 (used for sensor input)
+    PORTD.PINCTRLUPD = 0xFB; // 0b11111011, excludes PD2
+
+    // PORTE - Apply to all pins (assuming none are in use)
+    PORTE.PINCTRLUPD = 0xFF; // All pins
+}
+
+
 int main(){
     VREF_init();
     AC_init();
     LED_init();
     // Initialize timer
     TCA0_init();
+    // Configure unused pins to minimize power consumption
+    configure_unused_pins();
     // Enable interrupts
     sei();
     sleep_init();

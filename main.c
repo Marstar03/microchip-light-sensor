@@ -52,24 +52,16 @@ bool AC_above_threshold() {
     }
 }
 
+void EVSYS_init() {
+    // Set up Event Channel 0 with Analog Comparator as the event generator
+    EVSYS.CHANNEL0 = EVSYS_CHANNEL0_AC0_OUT_gc;
+    
+    EVSYS.USEREVSYSEVOUTA = EVSYS_USER_CHANNEL0_gc;
+}
+
 // Function to initialize sleep mode
 void sleep_init(void) {
     set_sleep_mode(SLEEP_MODE_STANDBY);  // Standby sleep mode
-}
-
-ISR(AC0_AC_vect)
-{
-    // Add your code here 
-    if (AC_above_threshold()) {
-        set_LED_off(); // Turn LED off when it's bright
-    } else {
-        set_LED_on();  // Turn LED on when it's dark
-    }
-    
-    // Clear interrupt flag
-    //TCA0.SINGLE.INTFLAGS = TCA_SINGLE_OVF_bm;
-    // Clear interrupt flag
-    AC0.STATUS = AC_CMPIF_bm;
 }
 
 void configure_unused_pins(void) {
@@ -98,10 +90,10 @@ int main(){
     VREF_init();
     AC_init();
     LED_init();
+    EVSYS_init();
     // Configure unused pins to minimize power consumption
     configure_unused_pins();
-    // Enable interrupts
-    sei();
+    
     sleep_init();
     
     while(1) {
